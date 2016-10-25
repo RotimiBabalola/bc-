@@ -24,11 +24,94 @@ program
     //add the name and phone number to the database
     stmt.run(name, phone_number)
     stmt.finalize();
-    //log the data
+    //print the data
     db.each("SELECT contact_id, contact_name, contact_number FROM contacts", function(err, row){
     	console.log(row.contact_id + ":" + row.contact_name + ":" + row.contact_number)
     });
 
+  });
+
+
+ //next goal --> search the database for a contact
+ program
+  .command('search <name>')
+  .description('search for <name>')
+  .action(function(name, command){
+    //do a check to see if db exists before searching
+    //search for the given name
+
+    db.all("SELECT contact_id, contact_name, contact_number FROM contacts WHERE contact_name LIKE " + "'" + "%" + name + "%';", function(err, row){
+      //handle case where there is more than one contact with a given name
+      if(row.length > 1){
+        var rl = require('readline')
+        var read = rl.createInterface({
+          input: process.stdin,
+          output: process.stdout
+        });
+
+        for(i = 0; i < row.length; i++){
+          console.log("[" + i + "]", row[i].contact_name, row[i].contact_number)
+        }
+
+        read.question("\nWhich " + name + "? (Enter the corresponding number to indicate the contact)", function(answer){
+          read.close()
+          answer = parseInt(answer); //convert the answer from string to integer
+          console.log("You chose " + row[answer].contact_name, row[answer].contact_number)
+        });
+      }
+
+      else{
+        console.log("[" + row[0].contact_name + "]", row[0].contact_number);
+      }
+
+    });
+
+  });
+
+  //next goal --> user should be able to view all his contacts
+program
+  .command('view')
+  .description('View all stored contacts')
+  .action(function(command){
+    //sql statement to view all contacts
+    db.all("SELECT * FROM contacts ORDER BY contact_name;", function(err, row){
+      console.log(row)
+    });
+  });
+
+program
+  .command('del <name>')
+  .description('Delete <name> from contacts')
+  .action(function(name, command){
+    //first search the database for entries that match that name
+    db.all("SELECT contact_id, contact_name, contact_number FROM contacts WHERE contact_name LIKE " + "'" + "%" + name + "%';", function(err, row){
+
+      if(row.length > 1){
+        var rl = require('readline')
+        var read = rl.createInterface({
+          input: process.stdin,
+          output: process.stdout
+        });
+
+        //print the retrieved data
+        for(i = 0; i < row.length; i++){
+          console.log("[" + i + "]", row[i].contact_name, row[i].contact_number)
+        }
+
+        read.question("\nWhich " + name + "? (Enter the corresponding number to indicate the contact you want to delete)", function(answer){
+          read.close()
+          answer = parseInt(answer); //convert the answer from string to integer
+          db.run("DELETE FROM contacts WHERE contact_name = " + "'" + row[answer].contact_name + "'")
+          console.log("Contact successfully deleted!!")
+        });
+      }
+
+      else{
+        db.run("DELETE FROM contacts WHERE contact_name = " +  "'" + row[0].contact_name + "'")
+        console.log("Contact successfully deleted!!")
+      }
+
+    });
   });
 
   program.parse(process.argv)
