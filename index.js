@@ -1,7 +1,7 @@
 //import the required dependencies
 var sqlite3 = require('sqlite3').verbose()
 var program = require('commander')
-var twilio = require('twilio')
+var Jusibe = require('jusibe')
 var readline = require('readline')
 
 
@@ -19,8 +19,7 @@ program
     });
 
     var stmt = db.prepare("INSERT INTO contacts (contact_name, contact_number) VALUES (?, ?)");
-    //replace the first 0 in a phone number with +234
-    phone_number = phone_number.replace(phone_number.charAt(0), '+234')
+
     //add the name and phone number to the database
     stmt.run(name, phone_number)
     stmt.finalize();
@@ -79,6 +78,8 @@ program
     });
   });
 
+
+//next goal --> user should be able to delete a contact
 program
   .command('del <name>')
   .description('Delete <name> from contacts')
@@ -112,6 +113,42 @@ program
       }
 
     });
+  });
+
+//next goal --> user should be able to send an SMS to another user in his contact list
+program
+  .command('text <name> <short_message>')
+  .option('-m, --short_message', 'Message you want to send')
+  .description('Send <short_message> to <name>')
+  .action(function(short_message, name, command){
+    //console.log(message, name);
+    //first search database using the specified name
+    db.all("SELECT contact_name, contact_number FROM contacts WHERE contact_name LIKE " + "'" + "%" + name + "%';", function(err, row){
+      //set values of public key and access token
+      jusibe_pub_key = "2f1a1c3ab844aa292dd592e7a1abacc6";
+      jusibe_acc_token = "4352384c4191e982c08328308f50d09a";
+      
+      var jusibe = new Jusibe(jusibe_pub_key, jusibe_acc_token)
+
+      var payload = {
+        to: row[0].contact_number,
+        from: 'SMS_APP',
+        message: short_message
+      };
+
+      jusibe.sendSMS(payload, function(err, res){
+
+        if(res.statusCode === 200){
+          console.log(res.body);
+        }
+        else{
+          console.log(err);
+        }
+
+      });
+
+    });
+
   });
 
   program.parse(process.argv)
