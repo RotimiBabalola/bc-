@@ -1,8 +1,8 @@
-//import the required dependencies
+//import the required modules
 var sqlite3 = require('sqlite3').verbose()
 var program = require('commander')
 var Jusibe = require('jusibe')
-var readline = require('readline')
+var rl = require('readline')
 
 
 var db = new sqlite3.Database('contacts_db.sqlite')
@@ -15,7 +15,7 @@ program
   .action(function(name, phone_number, command) {
     //create the table if it does not exist
     db.serialize(function() {
-    	db.run("CREATE TABLE IF NOT EXISTS contacts (contact_id INTEGER PRIMARY KEY AUTOINCREMENT, contact_name TEXT, contact_number TEXT)");
+    	db.run("CREATE TABLE IF NOT EXISTS contacts (contact_id INTEGER PRIMARY KEY AUTOINCREMENT, contact_name TEXT NOT NULL, contact_number TEXT NOT NULL UNIQUE)");
     });
 
     var stmt = db.prepare("INSERT INTO contacts (contact_name, contact_number) VALUES (?, ?)");
@@ -25,7 +25,7 @@ program
     stmt.finalize();
     //print the data
     db.each("SELECT contact_id, contact_name, contact_number FROM contacts", function(err, row){
-    	console.log(row.contact_id + ":" + row.contact_name + ":" + row.contact_number)
+    	console.log(row.contact_id + " : " + row.contact_name + " : " + row.contact_number)
     });
 
   });
@@ -121,34 +121,76 @@ program
   .option('-m, --short_message', 'Message you want to send')
   .description('Send <short_message> to <name>')
   .action(function(short_message, name, command){
-    //console.log(message, name);
-    //first search database using the specified name
     db.all("SELECT contact_name, contact_number FROM contacts WHERE contact_name LIKE " + "'" + "%" + name + "%';", function(err, row){
-      //set values of public key and access token
+      //set values for jusibe's API
       jusibe_pub_key = "2f1a1c3ab844aa292dd592e7a1abacc6";
       jusibe_acc_token = "4352384c4191e982c08328308f50d09a";
-      
       var jusibe = new Jusibe(jusibe_pub_key, jusibe_acc_token)
 
-      var payload = {
-        to: row[0].contact_number,
-        from: 'SMS_APP',
-        message: short_message
-      };
+      if(row.length > 1){
+        //create interface for collecting input from the user
+        var read = rl.createInterface({
+          input: process.stdin,
+          output: process.stdout
+        });
 
-      jusibe.sendSMS(payload, function(err, res){
-
-        if(res.statusCode === 200){
-          console.log(res.body);
-        }
-        else{
-          console.log(err);
+        //print the retrieved data
+        for(i = 0; i < row.length; i++){
+          console.log("[" + i + "]", row[i].contact_name, row[i].contact_number)
         }
 
-      });
+        read.question("\nWhich " + name + "? (Enter the corresponding number to indicate the contact you want to send the SMS to)", function(answer){
+
+          read.close()
+          answer = parseInt(answer); //convert the answer from string to integer
+          
+          console.log("You chose " + row[answer].contact_name)
+          console.log("Sending message...")
+
+          //send message
+          var payload = {
+            to: row[answer].contact_number,
+            from: 'SMS_APP',
+            message: short_message
+          };
+
+          //send message confirming whether or not the message was sent
+         jusibe.sendSMS(payload, function(err, res){
+
+          if(res.statusCode === 200){
+            console.log(res.body);
+          }
+          else{
+            console.log("Message not sent!!" + "\n Use the error message below to debug \n");
+            console.log(err);
+          }
+
+         });
+
+        });
+      }
+
+      else{
+
+        var payload = {
+          to: row[0].contact_number,
+          from: 'SMS_APP',
+          message:short_message
+        };
+
+        jusibe.sendSMS(payload, function(err, res){
+          if(res.statusCode === 200){
+            console.log(res.body)
+          }
+
+          else{
+
+            console.log("Message not sent!!" + "\n Use the error message below to debug \n");
+            console.log(err);
+          }
+        });
+      }
 
     });
-
   });
-
   program.parse(process.argv)
