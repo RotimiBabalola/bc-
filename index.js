@@ -4,8 +4,6 @@ var program = require('commander')
 var Jusibe = require('jusibe')
 var rl = require('readline')
 
-
-
 var db = new sqlite3.Database('contacts_db.sqlite')
 
 //first goal create a database to store the contacts
