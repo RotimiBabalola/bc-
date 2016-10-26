@@ -3,7 +3,7 @@ var sqlite3 = require('sqlite3').verbose()
 var program = require('commander')
 var Jusibe = require('jusibe')
 var rl = require('readline')
-var fs = require('fs')
+
 
 
 var db = new sqlite3.Database('contacts_db.sqlite')
