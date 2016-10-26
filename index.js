@@ -49,10 +49,10 @@ program
         });
 
         for(i = 0; i < row.length; i++){
-          console.log("[" + i + "]", row[i].contact_name, row[i].contact_number)
+          console.log("[" + i + "]", row[i].contact_name.replace(name, ''), row[i].contact_number)
         }
 
-        read.question("\nWhich " + name + "? (Enter the corresponding number to indicate the contact)", function(answer){
+        read.question("\nWhich " + name + "? (Enter the corresponding number to indicate the contact) ", function(answer){
           read.close()
           answer = parseInt(answer); //convert the answer from string to integer
           console.log("You chose " + row[answer].contact_name, row[answer].contact_number)
@@ -96,10 +96,10 @@ program
 
         //print the retrieved data
         for(i = 0; i < row.length; i++){
-          console.log("[" + i + "]", row[i].contact_name, row[i].contact_number)
+          console.log("[" + i + "]", row[i].contact_name.replace(name, ''), row[i].contact_number)
         }
 
-        read.question("\nWhich " + name + "? (Enter the corresponding number to indicate the contact you want to delete)", function(answer){
+        read.question("\nWhich " + name + "? (Enter the corresponding number to indicate the contact you want to delete) ", function(answer){
           read.close()
           answer = parseInt(answer); //convert the answer from string to integer
           db.run("DELETE FROM contacts WHERE contact_name = " + "'" + row[answer].contact_name + "'")
@@ -127,6 +127,7 @@ program
       jusibe_acc_token = "4352384c4191e982c08328308f50d09a";
       var jusibe = new Jusibe(jusibe_pub_key, jusibe_acc_token)
 
+      //handle cases where more than one contact has the specified
       if(row.length > 1){
         //create interface for collecting input from the user
         var read = rl.createInterface({
@@ -136,10 +137,10 @@ program
 
         //print the retrieved data
         for(i = 0; i < row.length; i++){
-          console.log("[" + i + "]", row[i].contact_name, row[i].contact_number)
+          console.log("[" + i + "]", row[i].contact_name.replace(name, ''), row[i].contact_number)
         }
 
-        read.question("\nWhich " + name + "? (Enter the corresponding number to indicate the contact you want to send the SMS to)", function(answer){
+        read.question("\nWhich " + name + "? (Enter the corresponding number to indicate the contact you want to send the SMS to) ", function(answer){
 
           read.close()
           answer = parseInt(answer); //convert the answer from string to integer
