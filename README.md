@@ -4,11 +4,11 @@
 
 - **Contacto** is a node.js powered console application for managing contacts. 
 - It has the following features:
-  - Adding a contact
-  - Searching for a contact
-  - View all stored contacts
-  - Delete a contact
-  - Send an SMS to people in contacts
+  - Adding a contact.
+  - Searching for a contact.
+  - View all stored contacts.
+  - Delete a contact.
+  - Send an SMS to a person in your contacts.
 
 
 ## Dependencies
