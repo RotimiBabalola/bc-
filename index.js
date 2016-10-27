@@ -226,7 +226,7 @@ program
   });
 
 
-//next goal --> user should be able to delete a contact
+//Delete a contact
 program
   .command('del <name>')
   .description('Delete <name> from contacts')
@@ -243,7 +243,7 @@ program
     }); 
   });
 
-//next goal --> user should be able to send an SMS to another user in his contact list
+//Send an SMS to another user in the contact list
 program
   .command('text <name> <short_message>')
   .option('-m, --short_message', 'Message you want to send')
