@@ -12,6 +12,8 @@ jusibe_acc_token = "4352384c4191e982c08328308f50d09a";
 
 var jusibe = new Jusibe(jusibe_pub_key, jusibe_acc_token)
 
+//First I create some useful functions
+
 //function to check if the contacts database exists
 function checkIfDBExists(){
   db.serialize(function(){  
@@ -22,8 +24,20 @@ function checkIfDBExists(){
     else{
       return(false);
     }
-   })
-  })
+   });
+  });
+}
+
+//function to print a message confirming whether or not a message was sent
+function confirmSMS(payload){
+  jusibe.sendSMS(payload, function(err, res){
+    if(res.statusCode === 200){
+      console.log(res.body)
+    }
+    else{
+      console.log("Message not sent!!" + "\n Check the number and/or ensure you are connected to the internet \n");
+    }
+  });
 }
 
 //function to send SMS
@@ -31,61 +45,55 @@ function checkIfDBExists(){
 function sendSMS(name, message){
   db.all("SELECT contact_name, contact_number FROM contacts WHERE contact_name LIKE " + "'" + "%" + name + "%';", function(err, row){
     if(row.length > 1){
-    //create interface for collecting input from the user
-    var read = rl.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-    for(i = 0; i < row.length; i++){
-      console.log("[" + i + "]", row[i].contact_name.replace(name, ''), row[i].contact_number)
-    }
-    read.question("\nWhich " + name + "? (Enter the corresponding number to indicate the contact you want to send the SMS to) ", function(answer){
-      read.close();
-      answer = parseInt(answer); //convert answer from string to integer
-      console.log("You chose " + row[answer].contact_name)
-      console.log("Sending message...")
+      //create interface for collecting input from the user
+      var read = rl.createInterface({
+        input: process.stdin,
+        output: process.stdout
+      });
 
-      //send message
+      //print members of the array
+      for(i = 0; i < row.length; i++){
+        console.log("[" + i + "]", row[i].contact_name.replace(name, ''), row[i].contact_number);
+      }
+
+      read.question("\nWhich " + name + "? (Enter the corresponding number to indicate the contact you want to send the SMS to) ", function(answer){
+        read.close();
+        answer = parseInt(answer);
+
+        console.log("You chose " + row[answer].contact_name);
+        console.log("Sending message...");
+
+        var payload = {
+          to: row[answer].contact_number,
+          from: 'Contacto',
+          message: message
+        }
+
+        //print message confirming whether or not message was sent
+        confirmSMS(payload);
+      });
+    }
+
+    else if(row.length === 1){
+      console.log("Sending message...");
+
       var payload = {
-        to: row[answer].contact_number,
+        to: row[0].contact_number,
         from: 'Contacto',
         message: message
       }
       //print message confirming whether or not message was sent
-      jusibe.sendSMS(payload, function(err, res){
-        if(res.statusCode === 200){
-          console.log(res.body);
-        }
-        else{
-          console.log("Message not sent!!" + "\n Check the number and/or ensure you are connected to the internet \n");
-        }
-      });
-    });
-  }
-  else if(row.length === 1){
-    console.log("Sending message...")
-    //send message
-    var payload = {
-      to: row[0].contact_number,
-      from: 'Contacto',
-      message:message
-    };
-    jusibe.sendSMS(payload, function(err, res){
-      if(res.statusCode === 200){
-        console.log(res.body)
-      }
-      else{
-        console.log("Message not sent!!" + "\n Check the number and/or ensure you are connected to the internet \n");
-      }
-    });
-  }
-  else{
-    console.log("Message not sent because the contact name does not exist in the database")
-   }
- });
+      confirmSMS(payload);
+    }
+
+    else{
+      console.log("Message not sent because name does not exist in database")
+    }
+  });
 }
 
-//function to search database
+
+//function to search database and optionally delete a contact from the database
 function searchDB(name, search, delete_contact){
   db.all("SELECT contact_id, contact_name, contact_number FROM contacts WHERE contact_name LIKE " + "'" + "%" + name + "%';", function(err, row){
     if(row.length > 1){
@@ -125,8 +133,6 @@ function searchDB(name, search, delete_contact){
     }
   });
 }
-
-
 
 //first goal create a database to store the contacts
 program
