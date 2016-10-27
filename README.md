@@ -41,17 +41,15 @@
 ##Using the application
 
 - To add a contact use the following command        
-       > `add -n <name> -p <phone_number>`
+       `add -n <name> -p <phone_number>`
 - To search for a contact use the following command
-       > `search <name>`
+       `search <name>`
 - To search for a contact using a number 
-       > `searchNum <number>`
+       `searchNum <number>`
 - To view all stored contacts
-       > `view`
-
+       `view`
 - To delete a contact
-       > `del <name>` 
-
+       `del <name>` 
 - To send an SMS to a contact
-       > `text <name> -m <short_message>` 
+       `text <name> -m <short_message>` 
 
