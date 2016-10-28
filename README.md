@@ -38,6 +38,8 @@
 
 - Install the dependencies stated above using **npm**. 
 - You will also need to have **node** and **git** installed on your system.
+- Run `npm link` on git bash.
+- Use `contacto` with your commands
 
 ##Using the application
 
