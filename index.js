@@ -1,3 +1,5 @@
+#!/usr/bin/env node 
+
 //import the required modules
 var sqlite3 = require('sqlite3').verbose()
 var program = require('commander')
@@ -6,23 +8,27 @@ var rl = require('readline')
 var chalk = require('chalk')
 require('console.table')
 var Table = require('cli-table')
+var dotenv = require('dotenv');
+
+dotenv.load();
+
 
 //create table objects specifying parameters for the table
 var table = new Table({
-  head: ['Contact ID', 'Contact Name', 'Phone Number'], 
-  colWidths: [15, 17, 15]
+  head: ['ID', 'Contact Name', 'Phone Number'], 
+  colWidths: [5, 17, 15]
 });
 
 var table_search = new Table({
   head: ['Option', 'Contact Name', 'Phone Number'],
-  colWidths: [15, 17, 15]
+  colWidths: [8, 17, 15]
 });
 
 var db = new sqlite3.Database('contacts_db.sqlite')
 
 //set values for jusibe's API
-jusibe_pub_key = "2f1a1c3ab844aa292dd592e7a1abacc6";
-jusibe_acc_token = "4352384c4191e982c08328308f50d09a";
+var jusibe_pub_key = process.env.jusibe_pub_key;
+var jusibe_acc_token = process.env.jusibe_acc_token;
 
 var jusibe = new Jusibe(jusibe_pub_key, jusibe_acc_token)
 
@@ -111,8 +117,16 @@ function sendSMS(name, message){
 
 
 //function to search database and optionally delete a contact from the database
-function searchDB(name, search, delete_contact){
-  db.all("SELECT contact_id, contact_name, contact_number FROM contacts WHERE contact_name LIKE " + "'" + "%" + name + "%';", function(err, row){
+function searchDB(query, search, searchNum, delete_contact){
+  //check if you want to search for a name or number
+  if(searchNum){
+    field = "contact_number"
+  }
+  else{
+    field = "contact_name"
+  }
+
+  db.all("SELECT contact_id, contact_name, contact_number FROM contacts WHERE " + field + " LIKE " + "'" + "%" + query + "%';", function(err, row){
     if(row.length > 1){
       var read = rl.createInterface({
         input: process.stdin,
@@ -128,24 +142,30 @@ function searchDB(name, search, delete_contact){
       console.log(table_search.toString());
       
 
-      read.question("\nWhich " + name + "? (Enter the corresponding option to indicate the contact) ", function(answer){
+      read.question("\nWhich " + query + "? (Enter the corresponding option to indicate the contact) ", function(answer){
         read.close()
         answer = parseInt(answer); //convert the answer from string to integer
 
-        if(search === true && delete_contact === false){
+        if(search === true && delete_contact === false && searchNum === false){
           console.log("You chose " + row[answer].contact_name, row[answer].contact_number)
         }
-        else if(delete_contact === true && search === false){
+        else if(search === false && delete_contact === false && searchNum === true){
+          console.log("You chose " + row[answer].contact_name, row[answer].contact_number)
+        }
+        else if(delete_contact === true && search === false && searchNum === false){
           db.run("DELETE FROM contacts WHERE contact_name = " + "'" + row[answer].contact_name + "'")
           console.log(chalk.bold.green("Contact successfully deleted!!"));
         }
       });
     }
     else if(row.length === 1){
-      if(search === true && delete_contact === false){
+      if(search === true && delete_contact === false && searchNum === false){
         console.log("[" + row[0].contact_name + "]", row[0].contact_number);
       }
-      else if(delete_contact === true && search === false){
+      else if(search === false && delete_contact === false && searchNum === true){
+        console.log("[" + row[0].contact_name + "]", row[0].contact_number); 
+      }
+      else if(delete_contact === true && search === false && searchNum === false){
         db.run("DELETE FROM contacts WHERE contact_name = " +  "'" + row[0].contact_name + "'")
         console.log(chalk.bold.green("Contact successfully deleted!!"));
       }
@@ -163,20 +183,25 @@ program
   .option('-p, --phone_number', 'Phone number of contact')
   .description('Add a new contact')
   .action(function(name, phone_number, command){
-    //create the table if it does not exist
-    db.serialize(function(){
-    	db.run("CREATE TABLE IF NOT EXISTS contacts (contact_id INTEGER PRIMARY KEY AUTOINCREMENT, contact_name TEXT NOT NULL, contact_number TEXT NOT NULL UNIQUE)");
-    });
+    //use regex to ensure that only numbers are entered for the phone number
+    var pattern = /[a-zA-Z!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/
+    if(pattern.exec(phone_number)){
+      console.log("Please enter only numbers for the phone number");
+    }
+    else{
+      //create the table if it does not exist
+      db.serialize(function(){
+        db.run("CREATE TABLE IF NOT EXISTS contacts (contact_id INTEGER PRIMARY KEY AUTOINCREMENT, contact_name TEXT NOT NULL, contact_number TEXT NOT NULL UNIQUE)");
+      });
 
-    var stmt = db.prepare("INSERT INTO contacts (contact_name, contact_number) VALUES (?, ?)");
-
-    //add the name and phone number to the database
-    stmt.run(name, phone_number)
-    stmt.finalize();
-
-    //print the data
-    console.log(chalk.bold.green("Contact successfully created!!"))
-  });
+      var stmt = db.prepare("INSERT INTO contacts (contact_name, contact_number) VALUES (?, ?)");
+      //add the name and phone number to the database
+      stmt.run(name, phone_number)
+      stmt.finalize();
+      //print the data
+      console.log(chalk.bold.green("Contact successfully created!!"))
+    }
+});
 
 
  //Search the database for a contact
@@ -185,17 +210,36 @@ program
   .description('search for <name>')
   .action(function(name, command){
     db.serialize(function(){
-
       if(checkIfDBExists()){
         console.log(chalk.bold.red("Database table for contacts does not exist! Please add contacts before attempting to search"));
       }
       else{
         //call search function
-        searchDB(name, search=true, delete_contact=false)
+        searchDB(name, search=true, searchNum = false, delete_contact=false);
       }
-
     });
 });
+
+//Search database using a number - or part of it
+program
+ .command('searchNum <number>')
+ .description('Search database using <number>')
+ .action(function(number, command){
+  db.serialize(function(){
+    //use a regular expression to ensure that the user entered only numbers
+    var pattern = /[a-zA-Z!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/
+    if(pattern.exec(number)){
+      console.log("Please enter only numbers")
+    }
+
+    else if(checkIfDBExists()){
+      console.log(chalk.bold.red("Database table for contacts does not exist! Please add contacts before attempting to search"));
+    }
+    else{
+      searchDB(number, search=false, searchNum = true, delete_contact=false);
+    }
+  });
+ });
 
 //View all contacts
 program
@@ -238,12 +282,12 @@ program
       }
 
       else{
-        searchDB(name, search=false, delete_contact=true);
+        searchDB(name, search=false, searchNum = false, delete_contact=true);
       }
     }); 
   });
 
-//Send an SMS to another user in the contact list
+//Send an SMS to another user in his contact list
 program
   .command('text <name> <short_message>')
   .option('-m, --short_message', 'Message you want to send')
@@ -259,4 +303,5 @@ program
       }
   });
 });
+
 program.parse(process.argv)
