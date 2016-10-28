@@ -176,19 +176,24 @@ program
   .option('-p, --phone_number', 'Phone number of contact')
   .description('Add a new contact')
   .action(function(name, phone_number, command){
-    //create the table if it does not exist
-    db.serialize(function(){
-    	db.run("CREATE TABLE IF NOT EXISTS contacts (contact_id INTEGER PRIMARY KEY AUTOINCREMENT, contact_name TEXT NOT NULL, contact_number TEXT NOT NULL UNIQUE)");
-    });
+    //use regex to ensure that only numbers are entered for the phone number
+    var pattern = /[a-zA-Z!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/
+    if(pattern.exec(phone_number)){
+      console.log("Please enter only numbers for the phone number");
+    }
+    else{
+      //create the table if it does not exist
+      db.serialize(function(){
+        db.run("CREATE TABLE IF NOT EXISTS contacts (contact_id INTEGER PRIMARY KEY AUTOINCREMENT, contact_name TEXT NOT NULL, contact_number TEXT NOT NULL UNIQUE)");
+      });
 
-    var stmt = db.prepare("INSERT INTO contacts (contact_name, contact_number) VALUES (?, ?)");
-
-    //add the name and phone number to the database
-    stmt.run(name, phone_number)
-    stmt.finalize();
-
-    //print the data
-    console.log(chalk.bold.green("Contact successfully created!!"))
+      var stmt = db.prepare("INSERT INTO contacts (contact_name, contact_number) VALUES (?, ?)");
+      //add the name and phone number to the database
+      stmt.run(name, phone_number)
+      stmt.finalize();
+      //print the data
+      console.log(chalk.bold.green("Contact successfully created!!"))
+    }
   });
 
 
